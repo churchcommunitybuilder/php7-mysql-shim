@@ -53,14 +53,6 @@ namespace {
                 $password = ini_get('mysqli.default_pw') ?: null;
             }
 
-            $hash = sha1($hostname . $username . $flags);
-            /* persistent connections start with p: */
-            if (false && $hostname{1} !== ':' && isset(\Dshafik\MySQL::$connections[$hash])) {
-               \Dshafik\MySQL::$last_connection = \Dshafik\MySQL::$connections[$hash]['conn'];
-               \Dshafik\MySQL::$connections[$hash]['refcount'] += 1;
-               return \Dshafik\MySQL::$connections[$hash]['conn'];
-            }
-
             /* No flags, means we can use mysqli_connect() */
             if ($flags === 0) {
                 $conn = mysqli_connect($hostname, $username, $password);
@@ -68,8 +60,6 @@ namespace {
                     return false;
                 }
                 \Dshafik\MySQL::$last_connection = $conn;
-                $conn->hash = $hash;
-                \Dshafik\MySQL::$connections[$hash] = array('refcount' => 1, 'conn' => $conn);
 
                 return $conn;
             }
@@ -95,9 +85,6 @@ namespace {
                     return false;
                 }
                 // @codeCoverageIgnoreEnd
-
-                $conn->hash = $hash;
-                \Dshafik\MySQL::$connections[$hash] = array('refcount' => 1, 'conn' => $conn);
 
                 return $conn;
             } catch (\Throwable $e) {
@@ -131,15 +118,7 @@ namespace {
                 // @codeCoverageIgnoreEnd
             }
 
-            if (isset(\Dshafik\MySQL::$connections[$link->hash])) {
-                \Dshafik\MySQL::$connections[$link->hash]['refcount'] -= 1;
-            }
-
-            $return = true;
-            if (\Dshafik\MySQL::$connections[$link->hash]['refcount'] === 0) {
-                $return = mysqli_close($link);
-                unset(\Dshafik\MySQL::$connections[$link->hash]);
-            }
+            $return = mysqli_close($link);
 
             if ($isDefault) {
                 Dshafik\MySQL::$last_connection = null;
@@ -648,7 +627,6 @@ namespace Dshafik {
     class MySQL
     {
         public static $last_connection = null;
-        public static $connections = array();
 
         public static function getConnection($link = null, $func = null)
         {
