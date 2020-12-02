@@ -707,7 +707,7 @@ namespace Dshafik {
         {
             $escapedString = '';
             for ($i = 0, $max = strlen($unescapedString); $i < $max; $i++) {
-                $escapedString .= self::escapeChar($unescapedString{$i});
+                $escapedString .= self::escapeChar($unescapedString[$i]);
             }
 
             return $escapedString;
